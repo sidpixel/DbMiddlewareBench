@@ -269,7 +269,7 @@ class MongoDBClient(BenchmarkClient):
     
     def connect(self) -> bool:
         try:
-            uri = f"mongodb://{self.config.get('host', 'localhost')}:{self.config.get('port', 27017)}"
+            uri = f"mongodb://{self.config.get('username', '')}:{self.config.get('password', '')}:{self.config.get('host', '')}:{self.config.get('port', 27017)}"
             self.client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=5000)
             self.client.admin.command('ping')
             
@@ -321,7 +321,7 @@ class RabbitMQClient(BenchmarkClient):
     
     def __init__(self, config: Dict[str, Any]):
         super().__init__("RabbitMQ", config)
-        self.connection = None
+        self.client = None
         self.channel = None
     
     def connect(self) -> bool:
@@ -337,8 +337,8 @@ class RabbitMQClient(BenchmarkClient):
                 connection_attempts=3,
                 retry_delay=2
             )
-            self.connection = pika.BlockingConnection(parameters)
-            self.channel = self.connection.channel()
+            self.client = pika.BlockingConnection(parameters)
+            self.channel = self.client.channel()
             
             # 声明队列
             self.channel.queue_declare(
@@ -352,8 +352,8 @@ class RabbitMQClient(BenchmarkClient):
             return False
     
     def disconnect(self) -> bool:
-        if self.connection and not self.connection.is_closed:
-            self.connection.close()
+        if self.client and not self.client.is_closed:
+            self.client.close()
             return True
         return False
     
@@ -518,11 +518,13 @@ def main():
             "host": "localhost",
             "port": 3306,
             "user": "root",
-            "password": "",
+            "password": "root",
             "database": "test"
         },
         "mongodb": {
             "host": "localhost",
+            "username": "admin",
+            "password": "admin123",
             "port": 27017,
             "database": "benchmark_db"
         },
